@@ -1,0 +1,19 @@
+{
+  "name": "dynamic-dependency-provider",
+  "version": "0.0.4",
+  "private": true,
+  "devDependencies": {
+    "jest": "^20.x"
+  },
+  "scripts": {
+	  "test": "jest"
+  },
+
+  "jest": {
+    "testPathIgnorePatterns": [
+		"/node_modules/",
+		"/jspm_packages"
+	],
+	"verbose" : true
+  }
+}
