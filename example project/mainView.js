@@ -1,4 +1,4 @@
-ddi.register("MainView", provider, {
+ddpModule.register("MainView", provider, {
 	dependencies: ["React"],
 	instanceStrategy: "function"
 });

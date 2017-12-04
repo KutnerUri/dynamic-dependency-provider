@@ -1,13 +1,21 @@
 (function(){
 	const reactPath = "https://cdnjs.cloudflare.com/ajax/libs/react/16.1.1/umd/react.production.min.js";
 	const reactDomPath = "https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.1.1/umd/react-dom.production.min.js";
-
+	
 	resourceFetcher = new ResourceFetcher();
 
-	ddi.register("React", ResourceAdapter(reactPath, function () { return React }, resourceFetcher), {
+	var ddp = new DDP({
+		resourceFetcher: resourceFetcher,
+		httpProviderProto: HttpProvider,
+		diEntryProto: DiEntry,
+		mapProto: Map
+	});
+	window.ddpModule = ddp.module("cool single multipage app");
+
+	ddpModule.register("React", ResourceAdapter(reactPath, function () { return React }, resourceFetcher), {
 		instanceStrategy: "function"
 	})
-	ddi.register("ReactDom", ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher), {
+	ddpModule.register("ReactDom", ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher), {
 		dependencies: ["React"],
 		instanceStrategy: "function"
 	})
@@ -26,7 +34,7 @@
 	}
 
 	function updateRoot(nameOfView){
-		ddi.getMany(["ReactDom", nameOfView]).then(([reactDom, viewCtor]) => {
+		ddpModule.getMany(["ReactDom", nameOfView]).then(([reactDom, viewCtor]) => {
 			var element = new viewCtor();
 	
 			reactDom.render(element, document.getElementById('anchor'));

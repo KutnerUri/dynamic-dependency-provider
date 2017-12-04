@@ -1,4 +1,6 @@
-module.exports = DiEntry;
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined'){
+	module.exports = DiEntry
+}
 
 function DiEntry(className, classBlueprint, dependenciesProvider) {
 	this.name = className;

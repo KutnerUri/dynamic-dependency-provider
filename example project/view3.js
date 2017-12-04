@@ -1,4 +1,4 @@
-ddi.register("View3", provider, {
+ddpModule.register("View3", provider, {
 	dependencies: ["React"],
 	instanceStrategy: "function"
 })

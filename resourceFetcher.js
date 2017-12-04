@@ -10,7 +10,7 @@ function ResourceFetcher() {
 	}
 	
 	function fetchUsingScriptTag(location){
-		console.log("fetching...", location);
+		console.log("resourceFetcher: fetching...", location);
 		var scriptTag = document.createElement("script");
 		scriptTag.setAttribute('type', 'text/javascript');
 		scriptTag.setAttribute('src', location);
