@@ -11,8 +11,9 @@
 		this.get = get;
 		this.getMany = getMany;
 
-		function register(className, blueprint){
+		function register(className, blueprint, options){
 			var entry = new entryProto(className, blueprint, this);
+			entry.applyOptions(options);
 
 			providers.forEach(provider => provider.set(className, entry));
 

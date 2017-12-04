@@ -2,7 +2,7 @@ var DiEntry = require("../DiEntry.js");
 
 var _uniqueIdentifier = 0;
 
-describe("ctor", function () {
+describe("newCtor", function () {
 	test("should set name", function () {
 		var expectedName = "stringBuilder";
 		var instance = new DiEntry(expectedName);
@@ -31,38 +31,77 @@ describe("ctor", function () {
 	});
 });
 
-describe("create() as ctor", function () {
-	var _dependenciesProvider;
-	var _blueprint;
-	var _subject;
-	var _classes;
+[
+	{ name: "singleton ctor", options: { lifecycleStrategy: "singleton", instanceStrategy: "newCtor" }, blueprint: ctorBlueprint },
+	{ name: "singleton function", options: { lifecycleStrategy: "singleton", instanceStrategy: "function" }, blueprint: factoryBlueprint },
+	{ name: "transient ctor", options: { lifecycleStrategy: "transient", instanceStrategy: "newCtor" }, blueprint: ctorBlueprint },
+	{ name: "transient function", options: { lifecycleStrategy: "transient", instanceStrategy: "function" }, blueprint: factoryBlueprint },
+].forEach(suitCase => {
+	describe("injecting dependencies in .create(), as " + suitCase.name, function () {
+		var _dependenciesProvider;
+		var _blueprint;
+		var _subject;
+		var _classes = { "one": {}, "two": {}};
 
-	var _classes = {
-		"one": {},
-		"two": {}
-	};
+		beforeEach(function () {
+			_classes.one.id = _uniqueIdentifier++;
+			_classes.two.id = _uniqueIdentifier++;
+
+			_dependenciesProvider = new ProviderMock(_classes);
+
+			_subject = new DiEntry("name", suitCase.blueprint, _dependenciesProvider);
+			_subject.applyOptions(suitCase.options);
+		});
+
+		[
+			{name: "one dependency", input: ["one"], expected: [_classes.one]},
+			{name: "two dependency", input: ["one", "two"], expected: [_classes.one, _classes.two]},
+			{name: "zero", input: [], expected: []},
+		].forEach(testcase => {
+			test("should inject dependecies to ctor, when there is " + testcase.name, function () {
+				_subject.applyOptions({ dependencies: testcase.input });
+
+				var result = _subject.create();
+		
+				return expect(result).resolves.toHaveProperty("actualInjected", testcase.expected);
+			});
+		})
+
+		test("should inject nothing to ctor, when there are implicitly zero dependencies", function () {
+			var result = _subject.create();
+
+			return expect(result).resolves.toHaveProperty("actualInjected", []);
+		});
+
+		test("should return rejected promise, when dependencies don't exist", function () {
+			_subject.applyOptions({ dependencies: ["badDependency"] });
+
+			var result = _subject.create();
+
+			return expect(result).rejects.toEqual("badDependency");
+		});
+	});
+});
+
+describe("singleton strategy", function() {
+	var _subject;
 
 	beforeEach(function () {
-		_classes.one.id = _uniqueIdentifier++;
-		_classes.two.id = _uniqueIdentifier++;
+		_dependenciesProvider = new ProviderMock({});
 
-		_dependenciesProvider = new ProviderMock(_classes);
-
-		_blueprint = function blueprint() { this.actualInjected = Array.from(arguments); this.id = _uniqueIdentifier++; };
-		_subject = new DiEntry("name", _blueprint, _dependenciesProvider);
+		_subject = new DiEntry("name", ctorBlueprint, _dependenciesProvider);
 	});
 
 	test("should create instance of blueprint", function () {
 		var result = _subject.create();
 
-		return expect(result).resolves.toBeInstanceOf(_blueprint);
+		return expect(result).resolves.toBeInstanceOf(ctorBlueprint);
 	});
 
 	test("should only create one instance, when calling .create() twice immedietly", function () {
 		expect.assertions(1);
 		
 		var resultPromises = [_subject.create(), _subject.create()];
-
 
 		return Promise.all(resultPromises).then(function ([firstResult, secondResult]) {
 			return expect(secondResult).toBe(firstResult);
@@ -80,74 +119,40 @@ describe("create() as ctor", function () {
 			return expect(secondResult).resolves.toBe(firstResult);
 		});
 	});
-
-	[
-		{name: "one dependency", input: ["one"], expected: [_classes.one]},
-		{name: "two dependency", input: ["one", "two"], expected: [_classes.one, _classes.two]},
-		{name: "zero", input: [], expected: []},
-	].forEach(testcase => {
-		test("should inject dependecies to ctor, when there is " + testcase.name, function () {
-			_subject.withDependencies(testcase.input);
-	
-			var result = _subject.create();
-	
-			return expect(result).resolves.toHaveProperty("actualInjected", testcase.expected);
-		});
-	})
-
-	test("should inject nothing to ctor, when there are implicitly zero dependencies", function () {
-		var result = _subject.create();
-
-		return expect(result).resolves.toHaveProperty("actualInjected", []);
-	});
-
-	test("should return rejected promise, when dependencies don't exist", function () {
-		_subject.withDependencies(["badDependency"]);
-
-		var result = _subject.create();
-
-		return expect(result).rejects.toEqual("badDependency");
-	});
 });
 
-describe("as function", function () {
-	var _dependenciesProvider;
-	var _blueprint;
+describe("transient strategy", function() {
 	var _subject;
-	var _classes;
-
-	var _classes = {
-		"one": {},
-		"two": {}
-	};
 
 	beforeEach(function () {
-		_classes.one.id = _uniqueIdentifier++;
-		_classes.two.id = _uniqueIdentifier++;
+		_dependenciesProvider = new ProviderMock({});
 
-		_dependenciesProvider = new ProviderMock(_classes);
-
-		_blueprint = function blueprint() {
-			return {
-				actualInjected: Array.from(arguments),
-				id: _uniqueIdentifier++
-			};
-		};
-		_subject = new DiEntry("name", _blueprint, _dependenciesProvider);
-		_subject.asFactory();
+		_subject = new DiEntry("name", ctorBlueprint, _dependenciesProvider);
+		_subject.applyOptions({ lifecycleStrategy: "transient", instanceStrategy: "newCtor" });
 	});
 
-	test("should only create one instance, when calling .create() twice immedietly", function () {
+	test("should create instances of type blueprint, when creating calling .create() more than once", function () {
+		expect.assertions(2);
+		var resultOne = _subject.create();
+		var resultTwo = _subject.create();
+
+		return Promise.all([
+			expect(resultOne).resolves.toBeInstanceOf(ctorBlueprint),
+			expect(resultTwo).resolves.toBeInstanceOf(ctorBlueprint)
+		]);
+	});
+
+	test("should create two distinct instances, when calling .create() twice immedietly", function () {
 		expect.assertions(1);
 		
 		var resultPromises = [_subject.create(), _subject.create()];
 
 		return Promise.all(resultPromises).then(function ([firstResult, secondResult]) {
-			return expect(secondResult).toBe(firstResult);
+			return expect(secondResult).not.toBe(firstResult);
 		});
 	});
 
-	test("should only create one instance, when calling .create() twice sequencially", function () {
+	test("should create two distinct instances, when calling .create() twice sequencially", function () {
 		expect.assertions(1);
 
 		var firstPromise = _subject.create();
@@ -155,53 +160,24 @@ describe("as function", function () {
 		return firstPromise.then(function (firstResult) {
 			var secondResult = _subject.create();
 
-			return expect(secondResult).resolves.toBe(firstResult);
+			return expect(secondResult).resolves.not.toBe(firstResult);
 		});
-	});
-
-	[
-		{name: "one dependency", input: ["one"], expected: [_classes.one]},
-		{name: "two dependency", input: ["one", "two"], expected: [_classes.one, _classes.two]},
-		{name: "zero", input: [], expected: []},
-	].forEach(testcase => {
-		test("should inject dependecies to ctor, when there is " + testcase.name, function () {
-			_subject.withDependencies(testcase.input);
-	
-			var result = _subject.create();
-	
-			return expect(result).resolves.toHaveProperty("actualInjected", testcase.expected);
-		});
-	})
-
-
-	test("should inject nothing to ctor, when there are implicitly zero dependencies", function () {
-		expect.assertions(1);
-
-		var result = _subject.create();
-
-		return expect(result).resolves.toHaveProperty("actualInjected", []);
-	});
-
-	test("should return rejected promise, when dependencies don't exist", function () {
-		expect.assertions(1);
-		_subject.withDependencies(["badDependency"]);
-
-		var result = _subject.create();
-
-		return expect(result).rejects.toEqual("badDependency");
 	});
 });
 
-describe("as singleton instance", function(){
+describe("singleton instance strategy", function(){
 	var _subject;
 	var _blueprintInstance;
 
 	beforeEach(function(){
 		_blueprintInstance = { id: _uniqueIdentifier++ };
 		var dependenciesProvider = new ProviderMock();
+
 		_subject = new DiEntry("name", _blueprintInstance, dependenciesProvider);
 
-		_subject.asSingletonInstance();
+		_subject.applyOptions({
+			asSingletonInstance: true
+		});
 
 	});
 
@@ -216,91 +192,6 @@ describe("as singleton instance", function(){
 	});
 });
 
-describe("transient create() as ctor", function () {
-	var _dependenciesProvider;
-	var _blueprint;
-	var _subject;
-	var _classes;
-
-	var _classes = {
-		"one": {},
-		"two": {}
-	};
-
-	beforeEach(function () {
-		_classes.one.id = _uniqueIdentifier++;
-		_classes.two.id = _uniqueIdentifier++;
-
-		_dependenciesProvider = new ProviderMock(_classes);
-
-		_blueprint = function blueprint() { this.actualInjected = Array.from(arguments); this.id = _uniqueIdentifier++; };
-		_subject = new DiEntry("name", _blueprint, _dependenciesProvider);
-
-		_subject.asTransient();
-	});
-
-	test("should create instance of blueprint", function () {
-		expect.assertions(2);
-		var resultOne = _subject.create();
-		var resultTwo = _subject.create();
-
-		return Promise.all([
-			expect(resultOne).resolves.toBeInstanceOf(_blueprint),
-			expect(resultTwo).resolves.toBeInstanceOf(_blueprint)
-		]);
-	});
-
-	test("should create two instances, when calling .create() twice immedietly", function () {
-		expect.assertions(1);
-		
-		var resultPromises = [_subject.create(), _subject.create()];
-
-		return Promise.all(resultPromises).then(function ([firstResult, secondResult]) {
-			return expect(secondResult).not.toBe(firstResult);
-		});
-	});
-
-	test("should create two instances, when calling .create() twice sequencially", function () {
-		expect.assertions(1);
-
-		var firstPromise = _subject.create();
-
-		return firstPromise.then(function (firstResult) {
-			var secondResult = _subject.create();
-
-			return expect(secondResult).resolves.not.toBe(firstResult);
-		});
-	});
-
-	[
-		{name: "one dependency", input: ["one"], expected: [_classes.one]},
-		{name: "two dependency", input: ["one", "two"], expected: [_classes.one, _classes.two]},
-		{name: "zero", input: [], expected: []},
-	].forEach(testcase => {
-		test("should inject dependecies to ctor, when there is " + testcase.name, function () {
-			_subject.withDependencies(testcase.input);
-	
-			var result = _subject.create();
-	
-			return expect(result).resolves.toHaveProperty("actualInjected", testcase.expected);
-		});
-	})
-
-	test("should inject nothing to ctor, when there are implicitly zero dependencies", function () {
-		var result = _subject.create();
-
-		return expect(result).resolves.toHaveProperty("actualInjected", []);
-	});
-
-	test("should return rejected promise, when dependencies don't exist", function () {
-		_subject.withDependencies(["badDependency"]);
-
-		var result = _subject.create();
-
-		return expect(result).rejects.toEqual("badDependency");
-	});
-});
-
 function ProviderMock(classMap) {
 	this.getMany = function (nameArr) {
 		nameArr = (nameArr || []).map(name => {
@@ -310,4 +201,11 @@ function ProviderMock(classMap) {
 
 		return Promise.all(nameArr);
 	}
+}
+
+function ctorBlueprint() {
+	this.actualInjected = Array.from(arguments); this.id = _uniqueIdentifier++;
+}
+function factoryBlueprint() {
+	return { actualInjected: Array.from(arguments), id: _uniqueIdentifier++ };
 }

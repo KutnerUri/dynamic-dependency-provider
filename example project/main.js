@@ -4,11 +4,13 @@
 
 	resourceFetcher = new ResourceFetcher();
 
-	ddi.register("React", ResourceAdapter(reactPath, function () { return React }, resourceFetcher))
-		.asFactory();
-	ddi.register("ReactDom", ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher))
-		.withDependencies(["React"])
-		.asFactory();
+	ddi.register("React", ResourceAdapter(reactPath, function () { return React }, resourceFetcher), {
+		instanceStrategy: "function"
+	})
+	ddi.register("ReactDom", ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher), {
+		dependencies: ["React"],
+		instanceStrategy: "function"
+	})
 
 	const defaultRoute = "MainView";
 	location.hash = "#" + defaultRoute;

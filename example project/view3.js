@@ -1,6 +1,7 @@
-ddi.register("View3", provider)
-	.withDependencies(["React"])
-	.asFactory();
+ddi.register("View3", provider, {
+	dependencies: ["React"],
+	instanceStrategy: "function"
+})
 
 function provider(react){
 	return function View3() {
