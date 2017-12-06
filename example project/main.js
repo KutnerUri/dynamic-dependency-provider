@@ -14,30 +14,11 @@
 
 	ddpModule.register("React", ResourceAdapter(reactPath, function () { return React }, resourceFetcher), {
 		instanceStrategy: "function"
-	})
+	});
 	ddpModule.register("ReactDom", ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher), {
 		dependencies: ["React"],
 		instanceStrategy: "function"
-	})
+	});
 
-	const defaultRoute = "MainView";
-	location.hash = "#" + defaultRoute;
-
-	window.onhashchange = handleHashChanges;
-	handleHashChanges(); //for first view
-
-	function handleHashChanges(){
-		var viewName = location.hash.substring(1); //to remove '#' prefix
-		viewName = viewName || defaultRoute;
-		
-		updateRoot(viewName);
-	}
-
-	function updateRoot(nameOfView){
-		ddpModule.getMany(["ReactDom", nameOfView]).then(([reactDom, viewCtor]) => {
-			var element = new viewCtor();
-	
-			reactDom.render(element, document.getElementById('anchor'));
-		});
-	}
+	ddpModule.run("RootRenderer");
 })();
