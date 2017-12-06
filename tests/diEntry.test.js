@@ -193,13 +193,11 @@ describe("singleton instance strategy", function(){
 });
 
 function ProviderMock(classMap) {
-	this.getMany = function (nameArr) {
-		nameArr = (nameArr || []).map(name => {
-			if (!classMap.hasOwnProperty(name)) return Promise.reject(name);
-			return classMap[name];
-		});
-
-		return Promise.all(nameArr);
+	this.get = function (name) {
+		if (!classMap.hasOwnProperty(name)){
+			return Promise.reject("badDependency");
+		}
+		return classMap[name];
 	}
 }
 

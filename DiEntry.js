@@ -12,7 +12,22 @@ function DiEntry(className, classBlueprint, dependenciesProvider) {
 
 DiEntry.prototype.create = function create() {
 	return this.lifecycleFactory(this, this.dependenciesProvider);
-}
+};
+
+DiEntry.prototype.applyOptions = function(options){
+	if(!options) return;
+
+	for(var key in options) {
+		if(!options.hasOwnProperty(key) || !DiEntry.prototype.optionHandlers.hasOwnProperty(key)) return;
+
+		var handlers = DiEntry.prototype.optionHandlers[key];
+		var value = options[key];
+
+		handlers.forEach(f => f(this, value, options));
+	}
+
+	return this;
+};
 
 DiEntry.prototype.strategies = {
 	lifecycle: {
@@ -47,27 +62,14 @@ DiEntry.prototype.strategies = {
 		}
 	},
 	dependencyInjection: {
-		ctorInjection: function ctorInjection(entry) {			
-			return entry.dependenciesProvider.getMany(entry.dependencies)
+		ctorInjection: function ctorInjection(entry) {
+			var dependenciesPromises = entry.dependencies.map(x => entry.dependenciesProvider.get(x));
+			
+			return Promise.all(dependenciesPromises)
 				.then(actualDependencies => entry.instanceFactory(entry, actualDependencies));
 		}
 	}
 };
-
-DiEntry.prototype.applyOptions = function(options){
-	if(!options) return;
-
-	for(var key in options) {
-		if(!options.hasOwnProperty(key) || !DiEntry.prototype.optionHandlers.hasOwnProperty(key)) return;
-
-		var handlers = DiEntry.prototype.optionHandlers[key];
-		var value = options[key];
-
-		handlers.forEach(f => f(this, value, options));
-	}
-
-	return this;
-}
 
 DiEntry.prototype.optionHandlers = {
 	instanceStrategy: [
@@ -111,7 +113,6 @@ DiEntry.prototype.optionHandlers = {
 		}
 	]
 };
-
 
 DiEntry.prototype.lifecycleFactory= DiEntry.prototype.strategies.lifecycle.singleton;
 DiEntry.prototype.instanceFactory =	DiEntry.prototype.strategies.instanceCreation.newCtor;

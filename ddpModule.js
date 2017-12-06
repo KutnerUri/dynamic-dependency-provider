@@ -2,7 +2,7 @@ function DdpModule(providers, entryProto) {
 	this.register = register;
 	this.remove = remove;
 	this.get = get;
-	this.getMany = getMany;
+	this.run = get; //right now, it has the same meaning
 
 	function register(className, blueprint, options){
 		var entry = new entryProto(className, blueprint, this);
@@ -24,13 +24,6 @@ function DdpModule(providers, entryProto) {
 				err.message = "DDI: Failure resolving '" + className + "':\n" + err.message;
 				throw err;
 			})
-	}
-
-	function getMany(classNames){
-		if(!classNames) return Promise.resolve();
-
-		var fetchPromises = classNames.map(x => get(x));
-		return Promise.all(fetchPromises);
 	}
 
 	function promiseFirstOrDefault(chain, func, defaultResult){
