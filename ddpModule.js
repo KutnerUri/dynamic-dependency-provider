@@ -1,3 +1,7 @@
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined'){
+	module.exports = DdpModule;
+}
+
 function DdpModule(providers, entryProto) {
 	this.register = register;
 	this.remove = remove;
@@ -14,14 +18,15 @@ function DdpModule(providers, entryProto) {
 	}
 
 	function remove(className) {
-		providers.forEach(provider => provider.remove(className));
+		providers.forEach(provider => provider.delete(className));
 	}
 
 	function get(className) {
 		return promiseFirstOrDefault(providers, provider => provider.get(className))
 			.then(entry => entry.create())
 			.catch(err => {
-				err.message = "DDI: Failure resolving '" + className + "':\n" + err.message;
+				err.message = 'DDI: Failure resolving "' + className + '":\n' + err.message;
+				// throw 'DDI: Failure resolving "' + className + '":\n' + "End of chain";
 				throw err;
 			})
 	}
@@ -30,17 +35,18 @@ function DdpModule(providers, entryProto) {
 		if(!chain || chain.length < 1) return Promise.resolve(defaultResult);
 		
 		var i = 0;
-		var result = func(chain[i]);
-		var resultAsPromise = Promise.resolve(result);
-		return resultAsPromise.then(onResolve);
+		return recursiveResolve(undefined);
 
-		function onResolve(value){
+		function recursiveResolve(value){
 			if(!!value) return value;
 
-			i++;
 			if(chain.length <= i) return Promise.reject("End of chain");
+			
+			var funcResult = func(chain[i]);
+			var nextPromise = Promise.resolve(funcResult);
+			i++;
 
-			return func(chain[i]).then(onResolve);
+			return nextPromise.then(recursiveResolve);
 		}
 	}
 }
