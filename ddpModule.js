@@ -3,14 +3,15 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined'){
 }
 
 function DdpModule(providers, entryProto) {
-	this.register = register;
+	this.entry = entry;
 	this.remove = remove;
 	this.get = get;
 	this.run = get; //right now, it has the same meaning
 
-	function register(className, blueprint, options){
-		var entry = new entryProto(className, blueprint, this);
-		entry.applyOptions(options);
+	function entry(className) {
+		var entry = new entryProto(className);
+		entry.setDependenciesProvider(this);
+
 
 		providers.forEach(provider => provider.set(className, entry));
 

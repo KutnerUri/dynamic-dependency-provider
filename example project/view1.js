@@ -1,7 +1,9 @@
-ddpModule.register("View1", provider, {
-	dependencies: ["React"],
-	instanceStrategy: "function"
-});
+ddpModule.entry("View1")
+	.applyOptions({
+		dependencies: ["React"],
+		instanceStrategy: "function"
+	})
+	.registerAs(provider);
 
 function provider(react){
 	return function View1(){

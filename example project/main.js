@@ -12,13 +12,16 @@
 	});
 	window.ddpModule = ddp.module("cool single multipage app");
 
-	ddpModule.register("React", ResourceAdapter(reactPath, function () { return React }, resourceFetcher), {
-		instanceStrategy: "function"
-	});
-	ddpModule.register("ReactDom", ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher), {
-		dependencies: ["React"],
-		instanceStrategy: "function"
-	});
+	ddpModule.entry("React")
+		.applyOptions({ instanceStrategy: "function" })
+		.registerAs(ResourceAdapter(reactPath, function () { return React }, resourceFetcher));
+
+	ddpModule.entry("ReactDom")
+		.applyOptions({
+			dependencies: ["React"],
+			instanceStrategy: "function"
+		})
+		.registerAs(ResourceAdapter(reactDomPath, function () { return ReactDOM }, resourceFetcher))
 
 	ddpModule.run("RootRenderer");
 })();

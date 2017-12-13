@@ -1,7 +1,9 @@
-ddpModule.register("RootRenderer", RootRenderer, {
-	dependencies: ["ReactDom", "LocationStore"],
-	instanceStrategy: "function"
-});
+ddpModule.entry("RootRenderer")
+	.applyOptions({
+		dependencies: ["ReactDom", "LocationStore"],
+		instanceStrategy: "function"
+	})
+	.registerAs(RootRenderer);
 
 function RootRenderer(reactDom, locationStore){
 	locationStore.subscribe(updateRoot);

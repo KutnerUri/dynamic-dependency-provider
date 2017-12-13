@@ -10,20 +10,6 @@ describe("newCtor", function () {
 		expect(instance.name).toBe(expectedName);
 	});
 
-	test("should set blueprint", function () {
-		var expectedBluePrint = function StringBuilder() { return ""; };
-		var instance = new DiEntry("stringBuilder", expectedBluePrint);
-
-		expect(instance.blueprint).toBe(expectedBluePrint);
-	});
-
-	test("should set dependenciesProvider", function () {
-		var expectedDependenciesProvider = function dp() { return ""; };
-		var instance = new DiEntry(undefined, undefined, expectedDependenciesProvider);
-
-		expect(instance.dependenciesProvider).toBe(expectedDependenciesProvider);
-	});
-
 	test("should setup default values", function () {
 		var instance = new DiEntry();
 		expect(instance.dependencies).toEqual([]);
@@ -49,8 +35,12 @@ describe("newCtor", function () {
 
 			_dependenciesProvider = new ProviderMock(_classes);
 
-			_subject = new DiEntry("name", suitCase.blueprint, _dependenciesProvider);
-			_subject.applyOptions(suitCase.options);
+			_subject = new DiEntry("name");
+			
+			_subject
+				.applyOptions(suitCase.options)
+				.setDependenciesProvider(_dependenciesProvider)
+				.registerAs(suitCase.blueprint);
 		});
 
 		[
@@ -89,7 +79,11 @@ describe("singleton strategy", function() {
 	beforeEach(function () {
 		_dependenciesProvider = new ProviderMock({});
 
-		_subject = new DiEntry("name", ctorBlueprint, _dependenciesProvider);
+		_subject = new DiEntry("name");
+
+		_subject
+			.setDependenciesProvider(_dependenciesProvider)
+			.registerAs(ctorBlueprint);
 	});
 
 	test("should create instance of blueprint", function () {
@@ -127,8 +121,12 @@ describe("transient strategy", function() {
 	beforeEach(function () {
 		_dependenciesProvider = new ProviderMock({});
 
-		_subject = new DiEntry("name", ctorBlueprint, _dependenciesProvider);
-		_subject.applyOptions({ lifecycleStrategy: "transient", instanceStrategy: "newCtor" });
+		_subject = new DiEntry("name");
+		
+		_subject
+			.applyOptions({ lifecycleStrategy: "transient", instanceStrategy: "newCtor" })
+			.setDependenciesProvider(_dependenciesProvider)
+			.registerAs(ctorBlueprint);
 	});
 
 	test("should create instances of type blueprint, when creating calling .create() more than once", function () {
@@ -173,11 +171,14 @@ describe("singleton instance strategy", function(){
 		_blueprintInstance = { id: _uniqueIdentifier++ };
 		var dependenciesProvider = new ProviderMock();
 
-		_subject = new DiEntry("name", _blueprintInstance, dependenciesProvider);
+		_subject = new DiEntry("name");
 
-		_subject.applyOptions({
-			asSingletonInstance: true
-		});
+		_subject
+			.applyOptions({
+				asSingletonInstance: true
+			})
+			.setDependenciesProvider(_dependenciesProvider)
+			.registerAs(_blueprintInstance);
 
 	});
 

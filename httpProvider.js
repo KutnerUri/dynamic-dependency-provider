@@ -1,4 +1,4 @@
-function HttpProvider(){
+function HttpProvider(resourceFetcher){
 	var _pendingRequests = new Map();
 
 	this.get = get;
@@ -34,10 +34,9 @@ function HttpProvider(){
 	}
 
 	Request.prototype.execute = function (path) {
-		var fetchPromise = ResourceFetcher.fetchUsingScriptTag(path);
+		var fetchPromise = resourceFetcher.fetchUsingScriptTag(path);
 		fetchPromise.catch(err => request.reject(err));
 
 		return this.promise;
 	}
-}
 }

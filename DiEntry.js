@@ -1,17 +1,42 @@
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined'){
-	module.exports = DiEntry
+	module.exports = DiEntry;
 }
 
-function DiEntry(className, classBlueprint, dependenciesProvider) {
+function DiEntry(className) {
 	this.name = className;
-	this.blueprint = classBlueprint;
 	this.dependencies = [];
 	this.state = {};
-	this.dependenciesProvider = dependenciesProvider;	
+	setUpBlueprintPromise(this);
+
+	function setUpBlueprintPromise(obj) {
+		obj.blueprint = new Promise(function(reject, resolve){
+			obj.resolveBluePrint = resolve;
+		});
+
+		obj.blueprint.then(function(){ delete obj.resolveBluePrint; });
+	}
 }
 
-DiEntry.prototype.create = function create() {
-	return this.lifecycleFactory(this, this.dependenciesProvider);
+DiEntry.prototype.registerAs = function registerAs(blueprint){
+	if(this.blueprint && !this.blueprint.then) throw new Error("diEntry: cannot override existing blueprint");
+
+	this.resolveBluePrint(blueprint);
+	this.blueprint = blueprint;
+}
+
+DiEntry.prototype.setDependenciesProvider = function setDependenciesProvider(dependenciesProvider){
+	this.dependenciesProvider = dependenciesProvider;
+	
+	return this;
+}
+
+DiEntry.prototype.create = function create(){
+	if(!this.blueprint.then){
+		return this.lifecycleFactory(this, this.dependenciesProvider);
+	}
+
+	var that = this;
+	return this.blueprint.then(function(){ return that.create(); } );
 };
 
 DiEntry.prototype.applyOptions = function(options){

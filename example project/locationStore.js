@@ -1,4 +1,6 @@
-ddpModule.register("LocationStore", LocationStore);
+ddpModule.entry("LocationStore")
+	.registerAs(LocationStore);
+
 
 function LocationStore(){
 	const defaultHashRoute = "MainView";

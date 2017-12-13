@@ -1,7 +1,9 @@
-ddpModule.register("MainView", provider, {
-	dependencies: ["React"],
-	instanceStrategy: "function"
-});
+ddpModule.entry("MainView")
+	.applyOptions({
+		dependencies: ["React"],
+		instanceStrategy: "function"
+	})
+	.registerAs(provider);
 
 function provider(react) {
 	return MainView;
