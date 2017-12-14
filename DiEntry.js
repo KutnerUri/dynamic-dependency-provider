@@ -9,11 +9,11 @@ function DiEntry(className) {
 	setUpBlueprintPromise(this);
 
 	function setUpBlueprintPromise(obj) {
-		obj.blueprint = new Promise(function(reject, resolve){
+		obj.blueprint = new Promise(function(resolve, reject){
 			obj.resolveBluePrint = resolve;
 		});
 
-		obj.blueprint.then(function(){ delete obj.resolveBluePrint; });
+		obj.blueprint.then(function (blueprint) { delete obj.resolveBluePrint; });
 	}
 }
 

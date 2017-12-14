@@ -13,11 +13,10 @@ function DDP(dependenciesObject){
 }
 
 DDP.prototype.module = function (moduleName) {
-	var mod = this.modules.get(moduleName);
-	if (mod) return mod;
+	var existingModule = this.modules.get(moduleName);
+	if (existingModule) return existingModule;
 
-	var normalCache = new this.dependencies.mapProto();
-	var providers = [normalCache, new this.dependencies.httpProviderProto(resourceFetcher)];
+	var providers = [new this.dependencies.httpProviderProto(resourceFetcher)];
 	var newModule = new DdpModule(providers, this.dependencies.diEntryProto);
 
 	this.modules.set(moduleName, newModule);

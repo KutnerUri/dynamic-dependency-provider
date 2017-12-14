@@ -4,50 +4,54 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined'){
 
 function DdpModule(providers, entryProto) {
 	this.entry = entry;
-	this.remove = remove;
+	this.peek = peek;
 	this.get = get;
 	this.run = get; //right now, it has the same meaning
 
+	var _cache = new Map();
+	var _this = this;
+
 	function entry(className) {
+		var entry = _cache.get(className);
+		if (!entry) {
+			var entry = createEntry(className)
+			_cache.set(className, entry);
+		}
+	
+		return entry;
+	}
+
+	function peek(className) {
+		return _cache.get(className);
+	}
+
+	function get(className) {
+		var entry = _cache.get(className) || getFromProviders(className);
+		
+		return entry.create();
+	}
+
+	function createEntry(className){
 		var entry = new entryProto(className);
-		entry.setDependenciesProvider(this);
-
-
-		providers.forEach(provider => provider.set(className, entry));
+		entry.setDependenciesProvider(_this);
 
 		return entry;
 	}
 
-	function remove(className) {
-		providers.forEach(provider => provider.delete(className));
-	}
+	function getFromProviders(className) {
+		for (var i = 0; i < providers.length; i++) {
+			if (providers[i].canHandle(className)) {
+				var entry = providers[i].fetch(className);
+				if (!entry) {
+					entry = createEntry(className);
+				}
 
-	function get(className) {
-		return promiseFirstOrDefault(providers, provider => provider.get(className))
-			.then(entry => entry.create())
-			.catch(err => {
-				err.message = 'DDI: Failure resolving "' + className + '":\n' + err.message;
-				// throw 'DDI: Failure resolving "' + className + '":\n' + "End of chain";
-				throw err;
-			})
-	}
+				_cache.set(className, entry);
 
-	function promiseFirstOrDefault(chain, func, defaultResult){
-		if(!chain || chain.length < 1) return Promise.resolve(defaultResult);
-		
-		var i = 0;
-		return recursiveResolve(undefined);
-
-		function recursiveResolve(value){
-			if(!!value) return value;
-
-			if(chain.length <= i) return Promise.reject("End of chain");
-			
-			var funcResult = func(chain[i]);
-			var nextPromise = Promise.resolve(funcResult);
-			i++;
-
-			return nextPromise.then(recursiveResolve);
+				return entry;
+			}
 		}
+		
+		throw new Error("DDP: cannot find a provider to resolve: \"" + className + "\"");
 	}
 }
